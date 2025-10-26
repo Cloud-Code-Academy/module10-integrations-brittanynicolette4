@@ -51,6 +51,7 @@ public with sharing class DummyJSONCallout {
 		// If the HTTP response code is successful, parse the JSON response and update the contact.
 		if (response.getStatusCode() == 200) {
 			Contact cont = createContactFromJson(response.getBody());
+			cont.DummyJSON_Id__c = dummyUserId;
 			upsert cont DummyJSON_Id__c; //insert/update from the JSON response using the external id (dummyUserId)
 		}
 	}
@@ -86,15 +87,17 @@ public with sharing class DummyJSONCallout {
 		if (jsonMap.get('birthDate') != null) cont.Birthdate = Date.valueOf((String) jsonMap.get('birthDate'));
 
 		// Deserialize the address from the JSON response.
-		Map<String, Object> addressMap = (Map<String, Object>) jsonMap.get('address');
-
 		// Set the address fields on the contact.
-		if (addressMap != null) {
-			cont.MailingStreet = (String) addressMap.get('street');
-			cont.MailingCity = (String) addressMap.get('city');
-			cont.MailingState = (String) addressMap.get('state');
+		if (jsonMap.get('address') != null) {
+			Map<String, Object> addressMap = (Map<String, Object>) jsonMap.get('address');
+			cont.MailingStreet     = (String) addressMap.get('address');
+			cont.MailingCity       = (String) addressMap.get('city');
+			cont.MailingState      = (String) addressMap.get('state');
 			cont.MailingPostalCode = (String) addressMap.get('postalCode');
+			cont.MailingCountry    = (String) addressMap.get('country');
 		}
+		if (jsonMap.get('id') != null) cont.DummyJSON_Id__c = String.valueOf(jsonMap.get('id'));
+
 		return cont;
 	}
 
@@ -133,10 +136,11 @@ public with sharing class DummyJSONCallout {
 		if (response.getStatusCode() >= 200 && response.getStatusCode() <= 299) {
 			Contact cont = createContactFromJson(response.getBody());
 			Contact getCont = [SELECT Id, FirstName, LastName, Email, Phone FROM Contact WHERE Id = :contactId];
-			getCont.FirstName = getCont.FirstName;
-			getCont.LastName = getCont.LastName;
-			getCont.Email = getCont.Email;
-			getCont.Phone = getCont.Phone;
+
+    	if (cont.FirstName != null) getCont.FirstName = cont.FirstName;
+   		if (cont.LastName != null)  getCont.LastName  = cont.LastName;
+   		if (cont.Email != null)     getCont.Email     = cont.Email;
+    	if (cont.Phone != null)     getCont.Phone     = cont.Phone;
 			getCont.DummyJSON_Last_Updated__c = Datetime.now();
 			update getCont;
 		}
