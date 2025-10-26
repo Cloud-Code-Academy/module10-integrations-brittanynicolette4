@@ -33,7 +33,7 @@ public with sharing class DummyJSONCallout {
 	 * 
      * @param dummyUserId The ID of the user in the external system to fetch data for.
      */
-
+	
 	public static void getDummyJSONUserFromId(String dummyUserId) {
 		// Create HTTP request to send.
 		HttpRequest request = new HttpRequest();
@@ -79,22 +79,22 @@ public with sharing class DummyJSONCallout {
 		Contact cont = new Contact();
 
 		// Set the contact fields from the JSON response.
-		cont.FirstName = (String) jsonMap.get('firstName');
-		cont.LastName = (String) jsonMap.get('lastName');
-		cont.Email = (String) jsonMap.get('email');
-		cont.Phone = (String) jsonMap.get('phone');
-		cont.Birthdate = (Date) jsonMap.get('birthDate');
+		if (jsonMap.get('firstName') != null) cont.FirstName = (String) jsonMap.get('firstName');
+		if (jsonMap.get('lastName') != null) cont.LastName = (String) jsonMap.get('lastName');
+		if (jsonMap.get('email') != null) cont.Email = (String) jsonMap.get('email');
+		if (jsonMap.get('phone') != null) cont.Phone = (String) jsonMap.get('phone');
+		if (jsonMap.get('birthDate') != null) cont.Birthdate = Date.valueOf((String) jsonMap.get('birthDate'));
 
 		// Deserialize the address from the JSON response.
 		Map<String, Object> addressMap = (Map<String, Object>) jsonMap.get('address');
 
 		// Set the address fields on the contact.
-		cont.MailingStreet = (String) jsonMap.get('address');
-		cont.MailingCity = (String) jsonMap.get('city');
-		cont.MailingPostalCode = (String) jsonMap.get('postalCode');
-		cont.MailingState = (String) jsonMap.get('state');
-		cont.MailingCountry = (String) jsonMap.get('country');
-
+		if (addressMap != null) {
+			cont.MailingStreet = (String) addressMap.get('street');
+			cont.MailingCity = (String) addressMap.get('city');
+			cont.MailingState = (String) addressMap.get('state');
+			cont.MailingPostalCode = (String) addressMap.get('postalCode');
+		}
 		return cont;
 	}
 
@@ -132,8 +132,13 @@ public with sharing class DummyJSONCallout {
 		// If the HTTP response code is successful, update the contact.
 		if (response.getStatusCode() >= 200 && response.getStatusCode() <= 299) {
 			Contact cont = createContactFromJson(response.getBody());
-			cont.DummyJSON_Last_Updated__c = Datetime.now();
-			update cont;
+			Contact getCont = [SELECT Id, FirstName, LastName, Email, Phone FROM Contact WHERE Id = :contactId];
+			getCont.FirstName = getCont.FirstName;
+			getCont.LastName = getCont.LastName;
+			getCont.Email = getCont.Email;
+			getCont.Phone = getCont.Phone;
+			getCont.DummyJSON_Last_Updated__c = Datetime.now();
+			update getCont;
 		}
 	}
 
@@ -156,6 +161,10 @@ public with sharing class DummyJSONCallout {
 	private static String generateDummyJsonUserPayload(String contactId) {
 		// Query the contact to get the field values to generate the JSON payload.
 		Contact cont = [SELECT Id, FirstName, LastName, Email, Phone FROM Contact WHERE Id = :contactId];
+		if (cont.FirstName == null) cont.FirstName = 'Unknown';
+		if (cont.LastName == null)  cont.LastName  = 'Unknown';
+		if (cont.Email == null)     cont.Email     = 'Unknown';
+		if (cont.Phone == null)     cont.Phone     = 'Unknown';
 
 		// Create a map of the field values.
 		Map<String,Object> payloadMap = new Map<String,Object>();
